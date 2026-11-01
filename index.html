@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-950">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Divisor de Cuentas - Restaurante Pro</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @media print {
+            body {
+                background-color: white !important;
+                color: black !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .print-container {
+                background: white !important;
+                color: black !important;
+                box-shadow: none !important;
+                border: none !important;
+            }
+            .print-text-dark {
+                color: black !important;
+            }
+        }
+    </style>
+</head>
+<body class="h-full text-slate-100 flex flex-col font-sans antialiased">
+
+    <!-- Header -->
+    <header class="bg-slate-900 border-b border-slate-800 py-4 px-6 shadow-md no-print">
+        <div class="max-w-5xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-emerald-500 text-slate-950 p-2.5 rounded-xl font-bold text-xl shadow-lg shadow-emerald-500/20">
+                    <i class="fa-solid fa-receipt"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-white tracking-tight">Divisor de Cuentas Pro</h1>
+                    <p class="text-xs text-slate-400">Reparte la cuenta, propinas e invitados de forma justa</p>
+                </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                <button onclick="guardarCuentaActual()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-lg text-sm font-medium transition border border-slate-700 flex items-center gap-2">
+                    <i class="fa-solid fa-floppy-disk text-emerald-400"></i> Guardar
+                </button>
+                <select id="selectHistorial" onchange="cargarCuentaSeleccionada(this.value)" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-lg text-sm font-medium transition border border-slate-700 outline-none">
+                    <option value="">Historial guardado...</option>
+                </select>
+                <button onclick="limpiarTodo()" class="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 px-3 py-2 rounded-lg text-sm font-medium transition border border-rose-500/30 flex items-center gap-2" title="Borrar todo">
+                    <i class="fa-solid fa-trash-can"></i> Limpiar
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-grow max-w-5xl w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 print-container">
+        
+        <!-- Left Column: Inputs & Management -->
+        <div class="lg:col-span-7 space-y-6">
+            
+            <!-- 1. Integrantes -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                <h2 class="text-base font-semibold text-white mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-users text-emerald-400"></i> 1. Comensales en la Mesa
+                </h2>
+                <form id="formPersona" onsubmit="agregarPersona(event)" class="flex gap-2 mb-4">
+                    <input type="text" id="nombrePersona" placeholder="Nombre del comensal..." required
+                        class="flex-grow bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition">
+                    <label class="flex items-center gap-2 bg-slate-950 border border-slate-800 px-3 rounded-xl text-xs text-slate-300 cursor-pointer hover:border-slate-700 transition">
+                        <input type="checkbox" id="esHomenajeado" class="accent-emerald-500 w-4 h-4 rounded">
+                        <span>Homenajeado</span>
+                    </label>
+                    <button type="submit" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold px-4 py-2.5 rounded-xl text-sm transition shadow-lg shadow-emerald-500/10">
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                </form>
+                <div id="listaPersonas" class="flex flex-wrap gap-2">
+                    <!-- Dinámico -->
+                </div>
+            </div>
+
+            <!-- 2. Ítems de Consumo -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                <h2 class="text-base font-semibold text-white mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-utensils text-emerald-400"></i> 2. Consumos y Platos
+                </h2>
+                <form id="formItem" onsubmit="agregarItem(event)" class="space-y-3 mb-4">
+                    <div class="flex gap-2">
+                        <input type="text" id="nombreItem" placeholder="Ej: Pizza Napolitana, Vino, Postre..." required
+                            class="flex-grow bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition">
+                        <input type="number" id="precioItem" placeholder="Precio ($)" step="any" min="1" required
+                            class="w-32 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition">
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-1.5">
+                            <label class="text-xs font-medium text-slate-400">¿Quién consumió esto?</label>
+                            <button type="button" onclick="seleccionarTodosConsumidores(true)" class="text-xs text-emerald-400 hover:underline font-medium">Seleccionar todos</button>
+                        </div>
+                        <div id="checkboxesConsumidores" class="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 bg-slate-950 border border-slate-800 rounded-xl">
+                            <!-- Dinámico -->
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium py-2.5 rounded-xl text-sm transition border border-slate-700 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-cart-plus text-emerald-400"></i> Agregar Ítem a la Cuenta
+                    </button>
+                </form>
+
+                <!-- Tabla de Ítems -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-950 text-slate-400 text-xs uppercase border-b border-slate-800">
+                            <tr>
+                                <th class="p-3">Ítem</th>
+                                <th class="p-3">Precio</th>
+                                <th class="p-3">Consumidores</th>
+                                <th class="p-3 text-right">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaItems" class="divide-y divide-slate-800/60">
+                            <!-- Dinámico -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 3. Ajustes y Pagador -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+                <h2 class="text-base font-semibold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-gear text-emerald-400"></i> 3. Ajustes Finales
+                </h2>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Propina -->
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Propina (<span id="labelPropinaPct">10</span>%)</label>
+                        <input type="range" id="propinaPct" min="0" max="25" value="10" step="1" oninput="calcularTodo()"
+                            class="w-full accent-emerald-500 bg-slate-950 cursor-pointer">
+                    </div>
+
+                    <!-- Quién pagó -->
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">¿Quién pagó el total con tarjeta?</label>
+                        <select id="pagadorGlobal" onchange="calcularTodo()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 transition">
+                            <option value="">Nadie / Pagos separados</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right Column: Results & Summary -->
+        <div class="lg:col-span-5 space-y-6">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl sticky top-6">
+                <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-800">
+                    <h2 class="text-base font-semibold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-file-invoice-dollar text-emerald-400"></i> Resumen de Cuenta
+                    </h2>
+                    <span id="totalMesa" class="text-emerald-400 font-bold text-lg">$0</span>
+                </div>
+
+                <!-- Desglose por Persona -->
+                <div id="resultadoPersonas" class="space-y-3 mb-6 max-h-96 overflow-y-auto pr-1">
+                    <!-- Dinámico -->
+                </div>
+
+                <!-- Botones de Acción -->
+                <div class="space-y-2.5 no-print">
+                    <button onclick="copiarWhatsApp()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3 rounded-xl text-sm transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20">
+                        <i class="fa-brands fa-whatsapp text-lg"></i> Copiar Resumen para WhatsApp
+                    </button>
+                    <button onclick="window.print()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium py-2.5 rounded-xl text-sm transition border border-slate-700 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-file-pdf text-rose-400"></i> Descargar / Imprimir PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Script de lógica -->
+    <script>
+        let personas = [];
+        let items = [];
+
+        window.onload = function() {
+            const guardado = localStorage.getItem('divisor_cuenta_actual');
+            if (guardado) {
+                try {
+                    const data = JSON.parse(guardado);
+                    personas = data.personas || [];
+                    items = data.items || [];
+                    if (data.propina) document.getElementById('propinaPct').value = data.propina;
+                } catch(e) { console.error(e); }
+            }
+            actualizarHistorialSelect();
+            renderizarTodo();
+        };
+
+        function limpiarTodo() {
+            if (confirm("¿Estás seguro de que deseas borrar todos los datos actuales?")) {
+                personas = [];
+                items = [];
+                document.getElementById('propinaPct').value = 10;
+                localStorage.removeItem('divisor_cuenta_actual');
+                renderizarTodo();
+            }
+        }
+
+        function guardarCuentaActual() {
+            const nombreCuenta = prompt("Nombre para guardar esta cuenta (ej: Cena Viernes):", "Cena Grupo " + new Date().toLocaleDateString());
+            if (!nombreCuenta) return;
+
+            let historial = JSON.parse(localStorage.getItem('divisor_historial') || '[]');
+            const cuentaData = {
+                id: Date.now(),
+                nombre: nombreCuenta,
+                fecha: new Date().toLocaleString(),
+                personas,
+                items,
+                propina: document.getElementById('propinaPct').value
+            };
+            historial.unshift(cuentaData);
+            if (historial.length > 10) historial.pop();
+            localStorage.setItem('divisor_historial', JSON.stringify(historial));
+            localStorage.setItem('divisor_cuenta_actual', JSON.stringify(cuentaData));
+            actualizarHistorialSelect();
+            alert("¡Cuenta guardada con éxito!");
+        }
+
+        function actualizarHistorialSelect() {
+            const select = document.getElementById('selectHistorial');
+            let historial = JSON.parse(localStorage.getItem('divisor_historial') || '[]');
+            select.innerHTML = '<option value="">Historial guardado...</option>';
+            historial.forEach(h => {
+                const opt = document.createElement('option');
+                opt.value = h.id;
+                opt.textContent = `${h.nombre} (${h.fecha})`;
+                select.appendChild(opt);
+            });
+        }
+
+        function cargarCuentaSeleccionada(id) {
+            if (!id) return;
+            let historial = JSON.parse(localStorage.getItem('divisor_historial') || '[]');
+            const encontrada = historial.find(h => h.id == id);
+            if (encontrada) {
+                personas = encontrada.personas;
+                items = encontrada.items;
+                document.getElementById('propinaPct').value = encontrada.propina || 10;
+                localStorage.setItem('divisor_cuenta_actual', JSON.stringify(encontrada));
+                renderizarTodo();
+            }
+        }
+
+        function guardarEnLocalStorage() {
+            const data = {
+                personas,
+                items,
+                propina: document.getElementById('propinaPct').value
+            };
+            localStorage.setItem('divisor_cuenta_actual', JSON.stringify(data));
+        }
+
+        function agregarPersona(e) {
+            e.preventDefault();
+            const input = document.getElementById('nombrePersona');
+            const esHomenajeado = document.getElementById('esHomenajeado').checked;
+            const nombre = input.value.trim();
+            
+            if (nombre && !personas.some(p => p.nombre.toLowerCase() === nombre.toLowerCase())) {
+                personas.push({ id: Date.now().toString(), nombre, esHomenajeado });
+                input.value = '';
+                document.getElementById('esHomenajeado').checked = false;
+                renderizarTodo();
+            }
+        }
+
+        function eliminarPersona(id) {
+            personas = personas.filter(p => p.id !== id);
+            items.forEach(item => {
+                item.consumidores = item.consumidores.filter(cId => cId !== id);
+            });
+            renderizarTodo();
+        }
+
+        function seleccionarTodosConsumidores(estado) {
+            const checkboxes = document.querySelectorAll('#checkboxesConsumidores input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = estado);
+        }
+
+        function agregarItem(e) {
+            e.preventDefault();
+            const nombre = document.getElementById('nombreItem').value.trim();
+            const precio = parseFloat(document.getElementById('precioItem').value);
+            
+            const checkboxes = document.querySelectorAll('#checkboxesConsumidores input[type="checkbox"]:checked');
+            let consumidores = Array.from(checkboxes).map(cb => cb.value);
+
+            if (consumidores.length === 0) {
+                alert("Debes seleccionar al menos a una persona que haya consumido este ítem.");
+                return;
+            }
+
+            if (nombre && precio > 0) {
+                items.push({ id: Date.now().toString(), nombre, precio, consumidores });
+                document.getElementById('nombreItem').value = '';
+                document.getElementById('precioItem').value = '';
+                seleccionarTodosConsumidores(false);
+                renderizarTodo();
+            }
+        }
+
+        function eliminarItem(id) {
+            items = items.filter(i => i.id !== id);
+            renderizarTodo();
+        }
+
+        function renderizarTodo() {
+            renderizarPersonas();
+            renderizarCheckboxesConsumidores();
+            renderizarTablaItems();
+            calcularTodo();
+            guardarEnLocalStorage();
+        }
+
+        function renderizarPersonas() {
+            const container = document.getElementById('listaPersonas');
+            container.innerHTML = '';
+            if (personas.length === 0) {
+                container.innerHTML = '<p class="text-xs text-slate-500 italic">No hay comensales agregados aún.</p>';
+                return;
+            }
+            personas.forEach(p => {
+                const tag = document.createElement('div');
+                tag.className = `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium border ${p.esHomenajeado ? 'bg-amber-500/10 border-amber-500/30 text-amber-300' : 'bg-slate-950 border-slate-800 text-slate-200'}`;
+                tag.innerHTML = `
+                    <span>${p.nombre}</span>
+                    ${p.esHomenajeado ? '<span class="bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded text-[10px]">Homenajeado</span>' : ''}
+                    <button onclick="eliminarPersona('${p.id}')" class="text-slate-500 hover:text-rose-400 transition ml-1"><i class="fa-solid fa-xmark"></i></button>
+                `;
+                container.appendChild(tag);
+            });
+        }
+
+        function renderizarCheckboxesConsumidores() {
+            const container = document.getElementById('checkboxesConsumidores');
+            container.innerHTML = '';
+            if (personas.length === 0) {
+                container.innerHTML = '<span class="text-xs text-slate-500 italic">Agrega comensales primero.</span>';
+                return;
+            }
+            personas.forEach(p => {
+                const lbl = document.createElement('label');
+                lbl.className = 'flex items-center gap-1.5 text-xs text-slate-300 bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800 cursor-pointer hover:border-slate-700';
+                lbl.innerHTML = `<input type="checkbox" value="${p.id}" class="accent-emerald-500 rounded"><span>${p.nombre}</span>`;
+                container.appendChild(lbl);
+            });
+        }
+
+        function renderizarTablaItems() {
+            const tbody = document.getElementById('tablaItems');
+            tbody.innerHTML = '';
+            if (items.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-slate-500 italic text-xs">Sin consumos registrados.</td></tr>';
+                return;
+            }
+            items.forEach(item => {
+                const nombresConsumidores = item.consumidores.length === personas.length ? 'Todos' : item.consumidores.map(cId => {
+                    const p = personas.find(pers => pers.id === cId);
+                    return p ? p.nombre : '';
+                }).filter(Boolean).join(', ');
+
+                const tr = document.createElement('tr');
+                tr.className = 'border-b border-slate-800/40 hover:bg-slate-950/40';
+                tr.innerHTML = `
+                    <td class="p-3 font-medium text-white">${item.nombre}</td>
+                    <td class="p-3 text-emerald-400 font-semibold">$${item.precio.toLocaleString()}</td>
+                    <td class="p-3 text-slate-400 text-xs">${nombresConsumidores}</td>
+                    <td class="p-3 text-right">
+                        <button onclick="eliminarItem('${item.id}')" class="text-slate-500 hover:text-rose-400 transition"><i class="fa-solid fa-trash-can"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function obtenerDatosCalculados() {
+            const propinaPct = parseFloat(document.getElementById('propinaPct').value) || 0;
+            
+            let detallePersonaItems = {};
+            personas.forEach(p => { detallePersonaItems[p.id] = []; });
+
+            items.forEach(item => {
+                if (item.consumidores.length > 0) {
+                    let costoPorPersona = item.precio / item.consumidores.length;
+                    item.consumidores.forEach(cId => {
+                        if (detallePersonaItems[cId]) {
+                            detallePersonaItems[cId].push({ nombreItem: item.nombre, monto: costoPorPersona });
+                        }
+                    });
+                }
+            });
+
+            let subtotalConsumos = {};
+            personas.forEach(p => {
+                subtotalConsumos[p.id] = detallePersonaItems[p.id].reduce((acc, curr) => acc + curr.monto, 0);
+            });
+
+            let noHomenajeados = personas.filter(p => !p.esHomenajeado);
+            let homenajeados = personas.filter(p => p.esHomenajeado);
+            
+            let totalHomenajeadosConsumo = homenajeados.reduce((acc, h) => acc + (subtotalConsumos[h.id] || 0), 0);
+            let extraPorPersonaNoHomenajeada = noHomenajeados.length > 0 ? totalHomenajeadosConsumo / noHomenajeados.length : 0;
+
+            let consumoFinalPersona = {};
+            personas.forEach(p => {
+                if (p.esHomenajeado) {
+                    consumoFinalPersona[p.id] = 0;
+                } else {
+                    consumoFinalPersona[p.id] = subtotalConsumos[p.id] + extraPorPersonaNoHomenajeada;
+                }
+            });
+
+            let sumaSubtotales = Object.values(consumoFinalPersona).reduce((a, b) => a + b, 0);
+            let propinaTotal = sumaSubtotales * (propinaPct / 100);
+
+            return { propinaPct, detallePersonaItems, consumoFinalPersona, sumaSubtotales, propinaTotal };
+        }
+
+        function calcularTodo() {
+            const propinaPct = parseFloat(document.getElementById('propinaPct').value) || 0;
+            document.getElementById('labelPropinaPct').innerText = propinaPct;
+
+            const selectPagador = document.getElementById('pagadorGlobal');
+            const pagadorActual = selectPagador.value;
+            selectPagador.innerHTML = '<option value="">Nadie / Pagos separados</option>';
+            personas.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = p.nombre;
+                if (p.id === pagadorActual) opt.selected = true;
+                selectPagador.appendChild(opt);
+            });
+
+            const calc = obtenerDatosCalculados();
+            let granTotalMesa = calc.sumaSubtotales + calc.propinaTotal;
+
+            document.getElementById('totalMesa').innerText = '$' + Math.round(granTotalMesa).toLocaleString();
+
+            const contenedorResultados = document.getElementById('resultadoPersonas');
+            contenedorResultados.innerHTML = '';
+
+            if (personas.length === 0) {
+                contenedorResultados.innerHTML = '<p class="text-xs text-slate-500 italic">Agrega comensales para ver el cálculo.</p>';
+                return;
+            }
+
+            let pagadorId = selectPagador.value;
+
+            personas.forEach(p => {
+                let sub = calc.consumoFinalPersona[p.id] || 0;
+                let prop = calc.sumaSubtotales > 0 ? (sub / calc.sumaSubtotales) * calc.propinaTotal : 0;
+                let totalPersona = sub + prop;
+                let misItems = calc.detallePersonaItems[p.id] || [];
+
+                const card = document.createElement('div');
+                card.className = `p-3.5 rounded-xl border ${p.esHomenajeado ? 'bg-amber-950/20 border-amber-500/30' : 'bg-slate-950/60 border-slate-800/80'}`;
+                
+                let itemsHtml = misItems.map(i => `<li class="text-[11px] text-slate-400 flex justify-between"><span>- ${i.nombreItem}</span><span class="text-slate-300">$${Math.round(i.monto).toLocaleString()}</span></li>`).join('');
+                if (p.esHomenajeado) {
+                    itemsHtml = `<li class="text-[11px] text-amber-400/80 italic">Su consumo fue invitado y repartido entre el grupo.</li>`;
+                }
+
+                let htmlCard = `
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-semibold text-white text-sm flex items-center gap-1.5">
+                            ${p.nombre} ${p.esHomenajeado ? '<span class="text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded font-normal">Homenajeado</span>' : ''}
+                        </span>
+                        <span class="font-bold text-emerald-400 text-base">$${Math.round(totalPersona).toLocaleString()}</span>
+                    </div>
+                    <ul class="space-y-0.5 my-1.5 pl-1 border-l border-slate-800">
+                        ${itemsHtml}
+                    </ul>
+                    <div class="text-[11px] text-slate-400 flex justify-between pt-1 border-t border-slate-800/60">
+                        <span>Consumo: $${Math.round(sub).toLocaleString()}</span>
+                        <span>Propina (${propinaPct}%): $${Math.round(prop).toLocaleString()}</span>
+                    </div>
+                `;
+
+                if (pagadorId && pagadorId !== p.id && totalPersona > 0) {
+                    const nombrePagador = personas.find(pers => pers.id === pagadorId)?.nombre || 'el pagador';
+                    htmlCard += `<div class="mt-2 pt-2 border-t border-slate-800/60 text-xs text-emerald-300 font-medium flex items-center gap-1">
+                        <i class="fa-solid fa-arrow-right-arrow-left"></i> Debe transferir $${Math.round(totalPersona).toLocaleString()} a ${nombrePagador}
+                    </div>`;
+                }
+
+                card.innerHTML = htmlCard;
+                contenedorResultados.appendChild(card);
+            });
+        }
+
+        function copiarWhatsApp() {
+            const calc = obtenerDatosCalculados();
+            let propinaPct = document.getElementById('propinaPct').value;
+            let pagadorId = document.getElementById('pagadorGlobal').value;
+            let nombrePagador = personas.find(p => p.id === pagadorId)?.nombre || '';
+
+            let texto = "🧾 *RESUMEN DE CUENTA - RESTAURANT* 🍽️\n\n";
+
+            personas.forEach(p => {
+                let sub = calc.consumoFinalPersona[p.id] || 0;
+                let prop = calc.sumaSubtotales > 0 ? (sub / calc.sumaSubtotales) * calc.propinaTotal : 0;
+                let total = sub + prop;
+                let misItems = calc.detallePersonaItems[p.id] || [];
+
+                texto += `👤 *${p.nombre}*${p.esHomenajeado ? ' (Homenajeado)' : ''}\n`;
+                if (p.esHomenajeado) {
+                    texto += `   • Consumo invitado\n`;
+                } else {
+                    misItems.forEach(i => {
+                        texto += `   • ${i.nombreItem}: $${Math.round(i.monto).toLocaleString()}\n`;
+                    });
+                }
+                texto += `   ➡️ *Total a pagar: $${Math.round(total).toLocaleString()}* (Consumo: $${Math.round(sub).toLocaleString()} + Propina ${propinaPct}%: $${Math.round(prop).toLocaleString()})\n\n`;
+            });
+
+            if (pagadorId) {
+                texto += `💳 *Pagó la cuenta con tarjeta:* ${nombrePagador}\n*(Por favor transferirle el monto correspondiente a cada uno)*`;
+            }
+
+            navigator.clipboard.writeText(texto).then(() => {
+                alert("¡Resumen detallado copiado para WhatsApp con éxito!");
+            });
+        }
+    </script>
+</body>
+</html>
