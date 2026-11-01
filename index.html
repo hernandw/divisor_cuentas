@@ -63,6 +63,25 @@
         <!-- Left Column: Inputs & Management -->
         <div class="lg:col-span-7 space-y-6">
             
+            <!-- Datos del Restaurant y Fecha -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                <h2 class="text-base font-semibold text-white mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-store text-emerald-400"></i> Datos de la Salida
+                </h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Nombre del Restaurante</label>
+                        <input type="text" id="nombreRestaurante" placeholder="Ej: Cafe del Mar, Vive Miski..." oninput="guardarEnLocalStorage()"
+                            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Fecha</label>
+                        <input type="date" id="fechaSalida" onchange="guardarEnLocalStorage()"
+                            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 transition">
+                    </div>
+                </div>
+            </div>
+
             <!-- 1. Integrantes -->
             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
                 <h2 class="text-base font-semibold text-white mb-3 flex items-center gap-2">
@@ -158,9 +177,12 @@
         <div class="lg:col-span-5 space-y-6">
             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl sticky top-6">
                 <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-800">
-                    <h2 class="text-base font-semibold text-white flex items-center gap-2">
-                        <i class="fa-solid fa-file-invoice-dollar text-emerald-400"></i> Resumen de Cuenta
-                    </h2>
+                    <div>
+                        <h2 class="text-base font-semibold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-file-invoice-dollar text-emerald-400"></i> Resumen
+                        </h2>
+                        <span id="displayRestauranteFecha" class="text-xs text-slate-400">Restaurante / Fecha</span>
+                    </div>
                     <span id="totalMesa" class="text-emerald-400 font-bold text-lg">$0</span>
                 </div>
 
@@ -189,6 +211,8 @@
         let items = [];
 
         window.onload = function() {
+            document.getElementById('fechaSalida').value = new Date().toISOString().split('T')[0];
+
             const guardado = localStorage.getItem('divisor_cuenta_actual');
             if (guardado) {
                 try {
@@ -196,6 +220,8 @@
                     personas = data.personas || [];
                     items = data.items || [];
                     if (data.propina) document.getElementById('propinaPct').value = data.propina;
+                    if (data.restaurante) document.getElementById('nombreRestaurante').value = data.restaurante;
+                    if (data.fecha) document.getElementById('fechaSalida').value = data.fecha;
                 } catch(e) { console.error(e); }
             }
             actualizarHistorialSelect();
@@ -207,20 +233,24 @@
                 personas = [];
                 items = [];
                 document.getElementById('propinaPct').value = 10;
+                document.getElementById('nombreRestaurante').value = '';
+                document.getElementById('fechaSalida').value = new Date().toISOString().split('T')[0];
                 localStorage.removeItem('divisor_cuenta_actual');
                 renderizarTodo();
             }
         }
 
         function guardarCuentaActual() {
-            const nombreCuenta = prompt("Nombre para guardar esta cuenta (ej: Cena Viernes):", "Cena Grupo " + new Date().toLocaleDateString());
-            if (!nombreCuenta) return;
+            const rest = document.getElementById('nombreRestaurante').value.trim() || 'Restaurante';
+            const fecha = document.getElementById('fechaSalida').value;
+            const nombreCuenta = `${rest} (${fecha})`;
 
             let historial = JSON.parse(localStorage.getItem('divisor_historial') || '[]');
             const cuentaData = {
                 id: Date.now(),
                 nombre: nombreCuenta,
-                fecha: new Date().toLocaleString(),
+                restaurante: rest,
+                fecha: fecha,
                 personas,
                 items,
                 propina: document.getElementById('propinaPct').value
@@ -240,7 +270,7 @@
             historial.forEach(h => {
                 const opt = document.createElement('option');
                 opt.value = h.id;
-                opt.textContent = `${h.nombre} (${h.fecha})`;
+                opt.textContent = `${h.nombre}`;
                 select.appendChild(opt);
             });
         }
@@ -253,6 +283,8 @@
                 personas = encontrada.personas;
                 items = encontrada.items;
                 document.getElementById('propinaPct').value = encontrada.propina || 10;
+                document.getElementById('nombreRestaurante').value = encontrada.restaurante || '';
+                document.getElementById('fechaSalida').value = encontrada.fecha || new Date().toISOString().split('T')[0];
                 localStorage.setItem('divisor_cuenta_actual', JSON.stringify(encontrada));
                 renderizarTodo();
             }
@@ -260,11 +292,20 @@
 
         function guardarEnLocalStorage() {
             const data = {
+                restaurante: document.getElementById('nombreRestaurante').value,
+                fecha: document.getElementById('fechaSalida').value,
                 personas,
                 items,
                 propina: document.getElementById('propinaPct').value
             };
             localStorage.setItem('divisor_cuenta_actual', JSON.stringify(data));
+            actualizarDisplayEncabezado();
+        }
+
+        function actualizarDisplayEncabezado() {
+            const rest = document.getElementById('nombreRestaurante').value.trim() || 'Mi Salida';
+            const fecha = document.getElementById('fechaSalida').value || '';
+            document.getElementById('displayRestauranteFecha').innerText = `${rest} ${fecha ? '• ' + fecha : ''}`;
         }
 
         function agregarPersona(e) {
@@ -325,6 +366,7 @@
             renderizarPersonas();
             renderizarCheckboxesConsumidores();
             renderizarTablaItems();
+            actualizarDisplayEncabezado();
             calcularTodo();
             guardarEnLocalStorage();
         }
@@ -418,19 +460,14 @@
             let totalHomenajeadosConsumo = homenajeados.reduce((acc, h) => acc + (subtotalConsumos[h.id] || 0), 0);
             let extraPorPersonaNoHomenajeada = noHomenajeados.length > 0 ? totalHomenajeadosConsumo / noHomenajeados.length : 0;
 
-            let consumoFinalPersona = {};
-            personas.forEach(p => {
-                if (p.esHomenajeado) {
-                    consumoFinalPersona[p.id] = 0;
-                } else {
-                    consumoFinalPersona[p.id] = subtotalConsumos[p.id] + extraPorPersonaNoHomenajeada;
-                }
+            let sumaSubtotales = 0;
+            noHomenajeados.forEach(p => {
+                sumaSubtotales += (subtotalConsumos[p.id] || 0) + extraPorPersonaNoHomenajeada;
             });
 
-            let sumaSubtotales = Object.values(consumoFinalPersona).reduce((a, b) => a + b, 0);
             let propinaTotal = sumaSubtotales * (propinaPct / 100);
 
-            return { propinaPct, detallePersonaItems, consumoFinalPersona, sumaSubtotales, propinaTotal };
+            return { propinaPct, detallePersonaItems, subtotalConsumos, sumaSubtotales, propinaTotal, extraPorPersonaNoHomenajeada };
         }
 
         function calcularTodo() {
@@ -464,23 +501,29 @@
             let pagadorId = selectPagador.value;
 
             personas.forEach(p => {
-                let sub = calc.consumoFinalPersona[p.id] || 0;
-                let prop = calc.sumaSubtotales > 0 ? (sub / calc.sumaSubtotales) * calc.propinaTotal : 0;
-                let totalPersona = sub + prop;
                 let misItems = calc.detallePersonaItems[p.id] || [];
+                let totalPersona = 0;
+                let consumoBase = calc.subtotalConsumos[p.id] || 0;
+                let prop = 0;
+
+                if (!p.esHomenajeado) {
+                    let sub = consumoBase + calc.extraPorPersonaNoHomenajeada;
+                    prop = calc.sumaSubtotales > 0 ? (sub / calc.sumaSubtotales) * calc.propinaTotal : 0;
+                    totalPersona = sub + prop;
+                }
 
                 const card = document.createElement('div');
                 card.className = `p-3.5 rounded-xl border ${p.esHomenajeado ? 'bg-amber-950/20 border-amber-500/30' : 'bg-slate-950/60 border-slate-800/80'}`;
                 
                 let itemsHtml = misItems.map(i => `<li class="text-[11px] text-slate-400 flex justify-between"><span>- ${i.nombreItem}</span><span class="text-slate-300">$${Math.round(i.monto).toLocaleString()}</span></li>`).join('');
-                if (p.esHomenajeado) {
-                    itemsHtml = `<li class="text-[11px] text-amber-400/80 italic">Su consumo fue invitado y repartido entre el grupo.</li>`;
+                if (misItems.length === 0) {
+                    itemsHtml = `<li class="text-[11px] text-slate-500 italic">Sin consumos directos registrados.</li>`;
                 }
 
                 let htmlCard = `
                     <div class="flex justify-between items-center mb-1">
                         <span class="font-semibold text-white text-sm flex items-center gap-1.5">
-                            ${p.nombre} ${p.esHomenajeado ? '<span class="text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded font-normal">Homenajeado</span>' : ''}
+                            ${p.nombre} ${p.esHomenajeado ? '<span class="text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded font-normal">Homenajeado (Invitado)</span>' : ''}
                         </span>
                         <span class="font-bold text-emerald-400 text-base">$${Math.round(totalPersona).toLocaleString()}</span>
                     </div>
@@ -488,7 +531,7 @@
                         ${itemsHtml}
                     </ul>
                     <div class="text-[11px] text-slate-400 flex justify-between pt-1 border-t border-slate-800/60">
-                        <span>Consumo: $${Math.round(sub).toLocaleString()}</span>
+                        <span>Consumo: $${p.esHomenajeado ? '0 (Invitado)' : Math.round(consumoBase + calc.extraPorPersonaNoHomenajeada).toLocaleString()}</span>
                         <span>Propina (${propinaPct}%): $${Math.round(prop).toLocaleString()}</span>
                     </div>
                 `;
@@ -510,24 +553,39 @@
             let propinaPct = document.getElementById('propinaPct').value;
             let pagadorId = document.getElementById('pagadorGlobal').value;
             let nombrePagador = personas.find(p => p.id === pagadorId)?.nombre || '';
+            let rest = document.getElementById('nombreRestaurante').value.trim() || 'Restaurante';
+            let fecha = document.getElementById('fechaSalida').value || '';
 
-            let texto = "🧾 *RESUMEN DE CUENTA - RESTAURANT* 🍽️\n\n";
+            let texto = `🧾 *RESUMEN DE CUENTA* 🍽️\n`;
+            texto += `📍 *Lugar:* ${rest}\n`;
+            if (fecha) texto += `📅 *Fecha:* ${fecha}\n`;
+            texto += `\n`;
 
             personas.forEach(p => {
-                let sub = calc.consumoFinalPersona[p.id] || 0;
-                let prop = calc.sumaSubtotales > 0 ? (sub / calc.sumaSubtotales) * calc.propinaTotal : 0;
-                let total = sub + prop;
                 let misItems = calc.detallePersonaItems[p.id] || [];
+                let totalPersona = 0;
+                let consumoSub = 0;
+                let prop = 0;
 
-                texto += `👤 *${p.nombre}*${p.esHomenajeado ? ' (Homenajeado)' : ''}\n`;
-                if (p.esHomenajeado) {
-                    texto += `   • Consumo invitado\n`;
-                } else {
-                    misItems.forEach(i => {
-                        texto += `   • ${i.nombreItem}: $${Math.round(i.monto).toLocaleString()}\n`;
-                    });
+                if (!p.esHomenajeado) {
+                    consumoSub = (calc.subtotalConsumos[p.id] || 0) + calc.extraPorPersonaNoHomenajeada;
+                    prop = calc.sumaSubtotales > 0 ? (consumoSub / calc.sumaSubtotales) * calc.propinaTotal : 0;
+                    totalPersona = consumoSub + prop;
                 }
-                texto += `   ➡️ *Total a pagar: $${Math.round(total).toLocaleString()}* (Consumo: $${Math.round(sub).toLocaleString()} + Propina ${propinaPct}%: $${Math.round(prop).toLocaleString()})\n\n`;
+
+                texto += `👤 *${p.nombre}*${p.esHomenajeado ? ' (Homenajeado - Invitado)' : ''}\n`;
+                misItems.forEach(i => {
+                    texto += `   • ${i.nombreItem}: $${Math.round(i.monto).toLocaleString()}\n`;
+                });
+                if (misItems.length === 0) {
+                    texto += `   • Sin consumos directos\n`;
+                }
+
+                if (p.esHomenajeado) {
+                    texto += `   ➡️ *Total a pagar: $0* *(Su consumo fue invitado al grupo)*\n\n`;
+                } else {
+                    texto += `   ➡️ *Total a pagar: $${Math.round(totalPersona).toLocaleString()}* (Consumo: $${Math.round(consumoSub).toLocaleString()} + Propina ${propinaPct}%: $${Math.round(prop).toLocaleString()})\n\n`;
+                }
             });
 
             if (pagadorId) {
