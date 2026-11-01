@@ -63,7 +63,7 @@
         <!-- Left Column: Inputs & Management -->
         <div class="lg:col-span-7 space-y-6">
             
-            <!-- Datos del Restaurant y Fecha -->
+            <!-- Datos del Restaurant y Selector de Fecha -->
             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
                 <h2 class="text-base font-semibold text-white mb-3 flex items-center gap-2">
                     <i class="fa-solid fa-store text-emerald-400"></i> Datos de la Salida
@@ -75,9 +75,9 @@
                             class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition">
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Fecha</label>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Fecha de la Salida</label>
                         <input type="date" id="fechaSalida" onchange="guardarEnLocalStorage()"
-                            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 transition">
+                            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 transition cursor-pointer">
                     </div>
                 </div>
             </div>
@@ -322,6 +322,14 @@
             }
         }
 
+        function editarNombrePersona(id, nuevoNombre) {
+            const persona = personas.find(p => p.id === id);
+            if (persona && nuevoNombre.trim()) {
+                persona.nombre = nuevoNombre.trim();
+                renderizarTodo();
+            }
+        }
+
         function eliminarPersona(id) {
             personas = personas.filter(p => p.id !== id);
             items.forEach(item => {
@@ -357,6 +365,23 @@
             }
         }
 
+        function editarItemNombre(id, nuevoNombre) {
+            const item = items.find(i => i.id === id);
+            if (item && nuevoNombre.trim()) {
+                item.nombre = nuevoNombre.trim();
+                renderizarTodo();
+            }
+        }
+
+        function editarItemPrecio(id, nuevoPrecio) {
+            const precio = parseFloat(nuevoPrecio);
+            const item = items.find(i => i.id === id);
+            if (item && !isNaN(precio) && precio > 0) {
+                item.precio = precio;
+                renderizarTodo();
+            }
+        }
+
         function eliminarItem(id) {
             items = items.filter(i => i.id !== id);
             renderizarTodo();
@@ -382,7 +407,7 @@
                 const tag = document.createElement('div');
                 tag.className = `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium border ${p.esHomenajeado ? 'bg-amber-500/10 border-amber-500/30 text-amber-300' : 'bg-slate-950 border-slate-800 text-slate-200'}`;
                 tag.innerHTML = `
-                    <span>${p.nombre}</span>
+                    <input type="text" value="${p.nombre}" onblur="editarNombrePersona('${p.id}', this.value)" class="bg-transparent border-b border-transparent hover:border-slate-700 focus:border-emerald-500 outline-none w-28 text-xs text-white">
                     ${p.esHomenajeado ? '<span class="bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded text-[10px]">Homenajeado</span>' : ''}
                     <button onclick="eliminarPersona('${p.id}')" class="text-slate-500 hover:text-rose-400 transition ml-1"><i class="fa-solid fa-xmark"></i></button>
                 `;
@@ -421,8 +446,12 @@
                 const tr = document.createElement('tr');
                 tr.className = 'border-b border-slate-800/40 hover:bg-slate-950/40';
                 tr.innerHTML = `
-                    <td class="p-3 font-medium text-white">${item.nombre}</td>
-                    <td class="p-3 text-emerald-400 font-semibold">$${item.precio.toLocaleString()}</td>
+                    <td class="p-3 font-medium text-white">
+                        <input type="text" value="${item.name || item.nombre}" onblur="editarItemNombre('${item.id}', this.value)" class="bg-transparent border-b border-transparent hover:border-slate-700 focus:border-emerald-500 outline-none w-full text-sm text-white">
+                    </td>
+                    <td class="p-3 text-emerald-400 font-semibold">
+                        $<input type="number" value="${item.precio}" onblur="editarItemPrecio('${item.id}', this.value)" class="bg-transparent border-b border-transparent hover:border-slate-700 focus:border-emerald-500 outline-none w-20 text-sm text-emerald-400">
+                    </td>
                     <td class="p-3 text-slate-400 text-xs">${nombresConsumidores}</td>
                     <td class="p-3 text-right">
                         <button onclick="eliminarItem('${item.id}')" class="text-slate-500 hover:text-rose-400 transition"><i class="fa-solid fa-trash-can"></i></button>
@@ -443,7 +472,7 @@
                     let costoPorPersona = item.precio / item.consumidores.length;
                     item.consumidores.forEach(cId => {
                         if (detallePersonaItems[cId]) {
-                            detallePersonaItems[cId].push({ nombreItem: item.nombre, monto: costoPorPersona });
+                            detallePersonaItems[cId].push({ nombreItem: item.nombre || item.name, monto: costoPorPersona });
                         }
                     });
                 }
@@ -593,7 +622,7 @@
             }
 
             navigator.clipboard.writeText(texto).then(() => {
-                alert("¡Resumen detallado copiado para WhatsApp con éxito!");
+                alert("¡Resumen copiado para WhatsApp con éxito!");
             });
         }
     </script>
