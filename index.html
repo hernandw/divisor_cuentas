@@ -23,9 +23,11 @@
                 box-shadow: none !important;
                 border: none !important;
             }
-            .print-text-dark {
-                color: black !important;
-            }
+        }
+        /* Forzar visibilidad del calendario en inputs de fecha */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            cursor: pointer;
         }
     </style>
 </head>
@@ -134,7 +136,7 @@
                     <table class="w-full text-left text-sm">
                         <thead class="bg-slate-950 text-slate-400 text-xs uppercase border-b border-slate-800">
                             <tr>
-                                <th class="p-3">Ítem</th>
+                                <th class="p-3">Ítem (Editable)</th>
                                 <th class="p-3">Precio</th>
                                 <th class="p-3">Consumidores</th>
                                 <th class="p-3 text-right">Acción</th>
@@ -211,7 +213,10 @@
         let items = [];
 
         window.onload = function() {
-            document.getElementById('fechaSalida').value = new Date().toISOString().split('T')[0];
+            const fechaInput = document.getElementById('fechaSalida');
+            if (!fechaInput.value) {
+                fechaInput.value = new Date().toISOString().split('T')[0];
+            }
 
             const guardado = localStorage.getItem('divisor_cuenta_actual');
             if (guardado) {
@@ -221,7 +226,7 @@
                     items = data.items || [];
                     if (data.propina) document.getElementById('propinaPct').value = data.propina;
                     if (data.restaurante) document.getElementById('nombreRestaurante').value = data.restaurante;
-                    if (data.fecha) document.getElementById('fechaSalida').value = data.fecha;
+                    if (data.fecha) fechaInput.value = data.fecha;
                 } catch(e) { console.error(e); }
             }
             actualizarHistorialSelect();
@@ -322,11 +327,13 @@
             }
         }
 
-        function editarNombrePersona(id, nuevoNombre) {
+        function actualizarNombrePersona(id, nuevoNombre) {
             const persona = personas.find(p => p.id === id);
             if (persona && nuevoNombre.trim()) {
                 persona.nombre = nuevoNombre.trim();
-                renderizarTodo();
+                guardarEnLocalStorage();
+                renderizarCheckboxesConsumidores();
+                calcularTodo();
             }
         }
 
@@ -365,20 +372,22 @@
             }
         }
 
-        function editarItemNombre(id, nuevoNombre) {
+        function actualizarItemNombre(id, nuevoNombre) {
             const item = items.find(i => i.id === id);
             if (item && nuevoNombre.trim()) {
                 item.nombre = nuevoNombre.trim();
-                renderizarTodo();
+                guardarEnLocalStorage();
+                calcularTodo();
             }
         }
 
-        function editarItemPrecio(id, nuevoPrecio) {
+        function actualizarItemPrecio(id, nuevoPrecio) {
             const precio = parseFloat(nuevoPrecio);
             const item = items.find(i => i.id === id);
             if (item && !isNaN(precio) && precio > 0) {
                 item.precio = precio;
-                renderizarTodo();
+                guardarEnLocalStorage();
+                calcularTodo();
             }
         }
 
@@ -407,7 +416,7 @@
                 const tag = document.createElement('div');
                 tag.className = `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium border ${p.esHomenajeado ? 'bg-amber-500/10 border-amber-500/30 text-amber-300' : 'bg-slate-950 border-slate-800 text-slate-200'}`;
                 tag.innerHTML = `
-                    <input type="text" value="${p.nombre}" onblur="editarNombrePersona('${p.id}', this.value)" class="bg-transparent border-b border-transparent hover:border-slate-700 focus:border-emerald-500 outline-none w-28 text-xs text-white">
+                    <input type="text" value="${p.nombre}" onchange="actualizarNombrePersona('${p.id}', this.value)" class="bg-transparent border-b border-slate-700 focus:border-emerald-500 outline-none w-28 text-xs text-white px-1">
                     ${p.esHomenajeado ? '<span class="bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded text-[10px]">Homenajeado</span>' : ''}
                     <button onclick="eliminarPersona('${p.id}')" class="text-slate-500 hover:text-rose-400 transition ml-1"><i class="fa-solid fa-xmark"></i></button>
                 `;
@@ -447,10 +456,10 @@
                 tr.className = 'border-b border-slate-800/40 hover:bg-slate-950/40';
                 tr.innerHTML = `
                     <td class="p-3 font-medium text-white">
-                        <input type="text" value="${item.name || item.nombre}" onblur="editarItemNombre('${item.id}', this.value)" class="bg-transparent border-b border-transparent hover:border-slate-700 focus:border-emerald-500 outline-none w-full text-sm text-white">
+                        <input type="text" value="${item.nombre}" onchange="actualizarItemNombre('${item.id}', this.value)" class="bg-slate-950 border border-slate-800 focus:border-emerald-500 rounded px-2 py-1 outline-none w-full text-sm text-white">
                     </td>
                     <td class="p-3 text-emerald-400 font-semibold">
-                        $<input type="number" value="${item.precio}" onblur="editarItemPrecio('${item.id}', this.value)" class="bg-transparent border-b border-transparent hover:border-slate-700 focus:border-emerald-500 outline-none w-20 text-sm text-emerald-400">
+                        $<input type="number" value="${item.precio}" onchange="actualizarItemPrecio('${item.id}', this.value)" class="bg-slate-950 border border-slate-800 focus:border-emerald-500 rounded px-2 py-1 outline-none w-24 text-sm text-emerald-400">
                     </td>
                     <td class="p-3 text-slate-400 text-xs">${nombresConsumidores}</td>
                     <td class="p-3 text-right">
@@ -472,7 +481,7 @@
                     let costoPorPersona = item.precio / item.consumidores.length;
                     item.consumidores.forEach(cId => {
                         if (detallePersonaItems[cId]) {
-                            detallePersonaItems[cId].push({ nombreItem: item.nombre || item.name, monto: costoPorPersona });
+                            detallePersonaItems[cId].push({ nombreItem: item.nombre, monto: costoPorPersona });
                         }
                     });
                 }
